@@ -94,10 +94,10 @@ export const research = [
 ];
 
 export const stats = [
-  { value: 11, suffix: '', suffixEn: '', label: '項專利發表', labelEn: 'Patents', note: 'Patents' },
+  { value: 11, suffix: ' 項', suffixEn: '', label: '專利發表', labelEn: 'Patents', note: 'Patents' },
   { value: 6, suffix: ' 年', suffixEn: ' yrs', label: '入選全球前 2% 科學家', labelEn: "World's Top 2% Scientist", note: 'Stanford × Elsevier · 2020–2025' },
-  { value: 23, suffix: '', suffixEn: '', label: '則獲獎與榮譽', labelEn: 'Awards & Honors', note: '2016 – 2025' },
-  { value: 4, suffix: '', suffixEn: '', label: '大研究領域', labelEn: 'Research Areas', note: 'Haptics · XR · Green · UCD' },
+  { value: 23, suffix: ' 則', suffixEn: '', label: '獲獎與榮譽', labelEn: 'Awards & Honors', note: '2016 – 2025' },
+  { value: 4, suffix: ' 大', suffixEn: '', label: '研究領域', labelEn: 'Research Areas', note: 'Haptics · XR · Green · UCD' },
 ];
 
 export type NewsItem = { text: string; en: string; kind: 'award' | 'honor' | 'career' | 'service' };
