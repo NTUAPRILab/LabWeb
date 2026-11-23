@@ -85,7 +85,7 @@ const placeholderColors = ['#c1ecd5', '#ffdea6', '#d2e8d7'];
           <p class="text-on-surface-variant">{{ students.length }} {{ zh() ? '位在學成員' : 'current members' }}</p>
         </div>
         <ul class="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          @for (s of students; track s.email; let i = $index) {
+          @for (s of students; track s.name; let i = $index) {
             <li [appReveal]="{ opacity: 0, y: 40, scale: 0.95 }" [delay]="(i % 5) * 0.05" [stiffness]="140" [damping]="16">
               <ng-container *ngTemplateOutlet="card; context: { $implicit: s, i: i }" />
             </li>
@@ -142,7 +142,7 @@ const placeholderColors = ['#c1ecd5', '#ffdea6', '#d2e8d7'];
         <figcaption class="mt-3 px-1">
           <p class="font-bold" [class]="small ? 'text-base' : 'text-lg'">{{ m.name }}</p>
           <p class="text-sm text-on-surface-variant">{{ role(m) }}</p>
-          @if (!small) {
+          @if (!small && m.email) {
             <a [href]="'mailto:' + m.email" class="mt-1 block truncate text-sm text-primary underline-offset-4 hover:underline">{{ m.email.toLowerCase() }}</a>
           }
         </figcaption>
@@ -164,6 +164,7 @@ export class MembersPage {
   protected readonly Math = Math;
 
   protected photo(id: string, small: boolean) {
+    if (id.startsWith('/')) return id;
     return small ? wix(id, 300, 375) : wix(id, 480, 600);
   }
 

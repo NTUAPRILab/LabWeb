@@ -3,7 +3,11 @@ import { animate } from 'motion';
 import { Icon } from '../ui/icon';
 import { Reveal } from '../ui/reveal';
 import { news, type NewsItem } from '../data';
+import { fetchNewsFromSheet } from '../lib/csv';
 import { I18nService } from '../lib/i18n';
+
+const NEWS_SHEET_CSV =
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XCvVrnvRmxu96aZYh9OQ_QEwl6gBgLWUl8olvyngTwWDJKp6LzVUsruV9AhDR_5tGqlEvmgjXcK4/pub?gid=0&single=true&output=csv';
 
 const filters = ['全部', '2025', '2024', '2023', '2022', '更早'] as const;
 type Filter = (typeof filters)[number];
@@ -78,9 +82,10 @@ export class News {
   protected readonly filterEn = filterEn;
   protected readonly kinds = kinds;
   protected readonly filter = signal<Filter>('全部');
+  protected readonly newsData = signal(news);
   protected readonly items = computed(() => {
     const f = this.filter();
-    const all = news.flatMap((g) => g.items.map((it, i) => ({ ...it, year: g.year, key: `${f}-${g.year}-${i}` })));
+    const all = this.newsData().flatMap((g) => g.items.map((it, i) => ({ ...it, year: g.year, key: `${f}-${g.year}-${i}` })));
     if (f === '全部') return all.slice(0, 8);
     if (f === '更早') return all.filter((x) => Number(x.year) < 2022);
     return all.filter((x) => x.year === f);
@@ -90,7 +95,16 @@ export class News {
   private readonly segs = viewChildren<ElementRef<HTMLElement>>('seg');
 
   constructor() {
-    afterNextRender(() => this.place(false));
+    afterNextRender(() => {
+      this.place(false);
+      fetchNewsFromSheet(NEWS_SHEET_CSV)
+        .then((rows) => {
+          if (rows.length) this.newsData.set(rows);
+        })
+        .catch(() => {
+          // Keep local fallback data if the sheet is unreachable.
+        });
+    });
     effect(() => {
       this.i18n.lang();
       queueMicrotask(() => this.place(false));
