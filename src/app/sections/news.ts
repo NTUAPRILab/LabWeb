@@ -1,17 +1,27 @@
-import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, signal, viewChild, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
 import { animate } from 'motion';
 import { Icon } from '../ui/icon';
 import { Reveal } from '../ui/reveal';
 import { news, type NewsItem } from '../data';
+import { I18nService } from '../lib/i18n';
 
 const filters = ['全部', '2025', '2024', '2023', '2022', '更早'] as const;
 type Filter = (typeof filters)[number];
 
-const kinds: Record<NewsItem['kind'], { label: string; icon: string; cls: string }> = {
-  award: { label: '獲獎', icon: 'award', cls: 'bg-tertiary-container text-on-tertiary-container rounded-[40%]' },
-  honor: { label: '榮譽', icon: 'sparkles', cls: 'bg-primary-container text-on-primary-container rounded-full' },
-  career: { label: '校友', icon: 'briefcase', cls: 'bg-secondary-container text-on-secondary-container rounded-2xl' },
-  service: { label: '學術服務', icon: 'book-open', cls: 'bg-surface-high text-on-surface rounded-[30%]' },
+const filterEn: Record<Filter, string> = {
+  全部: 'All',
+  '2025': '2025',
+  '2024': '2024',
+  '2023': '2023',
+  '2022': '2022',
+  更早: 'Earlier',
+};
+
+const kinds: Record<NewsItem['kind'], { label: string; en: string; icon: string; cls: string }> = {
+  award: { label: '獲獎', en: 'Award', icon: 'award', cls: 'bg-tertiary-container text-on-tertiary-container rounded-[40%]' },
+  honor: { label: '榮譽', en: 'Honor', icon: 'sparkles', cls: 'bg-primary-container text-on-primary-container rounded-full' },
+  career: { label: '校友', en: 'Alumni', icon: 'briefcase', cls: 'bg-secondary-container text-on-secondary-container rounded-2xl' },
+  service: { label: '學術服務', en: 'Service', icon: 'book-open', cls: 'bg-surface-high text-on-surface rounded-[30%]' },
 };
 
 @Component({
@@ -20,10 +30,10 @@ const kinds: Record<NewsItem['kind'], { label: string; icon: string; cls: string
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { id: 'news', class: 'block scroll-mt-24 px-4 py-24 md:px-8 md:py-32', '(window:resize)': 'place(false)' },
   template: `
-    <div class="mx-auto max-w-4xl">
+    <div class="mx-auto max-w-[1360px]">
       <div appReveal>
-        <span class="rounded-full bg-surface-high px-4 py-1.5 text-sm font-medium text-on-surface-variant">最新消息 · News</span>
-        <h2 class="mt-6 text-5xl font-bold tracking-[-0.03em] md:text-7xl">榮譽與里程碑</h2>
+        <span class="rounded-full bg-surface-high px-4 py-1.5 text-sm font-medium text-on-surface-variant">{{ i18n.lang() === 'zh' ? '最新消息 · News' : 'News' }}</span>
+        <h2 class="mt-6 text-5xl font-bold tracking-[-0.03em] md:text-7xl">{{ i18n.lang() === 'zh' ? '榮譽與里程碑' : 'Honors & Milestones' }}</h2>
       </div>
 
       <!-- M3 segmented button with a springy sliding indicator -->
@@ -38,7 +48,7 @@ const kinds: Record<NewsItem['kind'], { label: string; icon: string; cls: string
             class="relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors active:scale-95"
             [class]="filter() === f ? 'text-on-primary' : 'text-on-surface-variant hover:text-on-surface'"
           >
-            {{ f }}
+            {{ i18n.lang() === 'zh' ? f : filterEn[f] }}
           </button>
         }
       </div>
@@ -53,8 +63,8 @@ const kinds: Record<NewsItem['kind'], { label: string; icon: string; cls: string
               <svg [appIcon]="kinds[it.kind].icon" class="size-5"></svg>
             </span>
             <div>
-              <p class="text-sm font-medium text-on-surface-variant">{{ it.year }} · {{ kinds[it.kind].label }}</p>
-              <p class="mt-1 leading-relaxed md:text-lg">{{ it.text }}</p>
+              <p class="text-sm font-medium text-on-surface-variant">{{ it.year }} · {{ i18n.lang() === 'zh' ? kinds[it.kind].label : kinds[it.kind].en }}</p>
+              <p class="mt-1 leading-relaxed md:text-lg">{{ i18n.lang() === 'zh' ? it.text : it.en }}</p>
             </div>
           </li>
         }
@@ -63,7 +73,9 @@ const kinds: Record<NewsItem['kind'], { label: string; icon: string; cls: string
   `,
 })
 export class News {
+  protected readonly i18n = inject(I18nService);
   protected readonly filters = filters;
+  protected readonly filterEn = filterEn;
   protected readonly kinds = kinds;
   protected readonly filter = signal<Filter>('全部');
   protected readonly items = computed(() => {
@@ -79,6 +91,10 @@ export class News {
 
   constructor() {
     afterNextRender(() => this.place(false));
+    effect(() => {
+      this.i18n.lang();
+      queueMicrotask(() => this.place(false));
+    });
   }
 
   protected select(f: Filter) {

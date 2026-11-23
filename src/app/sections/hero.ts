@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, inject, viewChild, viewChildren } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, viewChild, viewChildren } from '@angular/core';
 import { scroll } from 'motion';
 import { Icon } from '../ui/icon';
 import { Morph } from '../ui/morph';
@@ -6,6 +6,7 @@ import { Reveal } from '../ui/reveal';
 import { RotatingText } from '../ui/rotating-text';
 import { heroShapes } from '../data';
 import { Spring, map, reducedMotion } from '../lib/anim';
+import { I18nService } from '../lib/i18n';
 import type { ShapeName } from '../lib/shapes';
 
 type Floater = { shapes: ShapeName[]; image?: string; color?: string; cls: string; depth: number; delay: number; spin: number };
@@ -58,11 +59,11 @@ const floaters: Floater[] = [
         class="mb-8 inline-flex items-center gap-2 rounded-full bg-surface-high px-4 py-2 text-sm font-medium text-on-surface-variant"
       >
         <span class="size-2 rounded-full bg-primary"></span>
-        NTU APRILab · 先進產品實現與互動實驗室
+        {{ i18n.lang() === 'zh' ? 'NTU APRILab · 先進產品實現與互動實驗室' : 'NTU APRILab · Advanced Product Realization & Interaction Lab' }}
       </span>
 
       <h1 class="text-[17vw] leading-[0.95] font-bold tracking-[-0.04em] md:text-[8.5rem]" style="font-variation-settings: 'ROND' 100, 'opsz' 144">
-        @for (line of lines; track line; let i = $index) {
+        @for (line of lines(); track $index; let i = $index) {
           <span class="block overflow-hidden pb-2">
             <span class="block" [class.text-primary]="i === 1" [appReveal]="{ y: '110%', rotate: 4 }" on="load" [delay]="0.25 + i * 0.12" [damping]="16">
               {{ line }}
@@ -78,25 +79,30 @@ const floaters: Floater[] = [
         [stiffness]="260"
         class="mt-8 flex flex-wrap items-center justify-center gap-3 text-xl text-on-surface-variant md:text-2xl"
       >
-        我們正在做
-        <app-rotating-text [texts]="words" />
+        {{ i18n.lang() === 'zh' ? '我們正在做' : 'We build' }}
+        <app-rotating-text [texts]="words()" />
       </div>
 
       <div [appReveal]="{ opacity: 0, y: 20 }" on="load" [delay]="0.75" [stiffness]="260" class="mt-10 flex flex-wrap justify-center gap-3">
         <a href="#showcase" class="btn bg-primary text-on-primary hover:bg-[#335a47]">
-          <svg appIcon="play" class="size-5 fill-current"></svg> 看作品
+          <svg appIcon="play" class="size-5 fill-current"></svg> {{ i18n.lang() === 'zh' ? '看作品' : 'Showcase' }}
         </a>
         <a href="#research" class="btn bg-secondary-container text-on-secondary-container hover:bg-primary-container">
-          研究領域 <svg appIcon="arrow-down" class="size-5"></svg>
+          {{ i18n.lang() === 'zh' ? '研究領域' : 'Research' }} <svg appIcon="arrow-down" class="size-5"></svg>
         </a>
       </div>
     </div>
   `,
 })
 export class Hero {
+  protected readonly i18n = inject(I18nService);
   protected readonly floaters = floaters;
-  protected readonly lines = ['讓虛擬，', '摸得到。'];
-  protected readonly words = ['力回饋手套', 'MR 焊接訓練', '遠端觸覺重現', 'VR 插管訓練', 'AR 遙控機器人'];
+  protected readonly lines = computed(() => (this.i18n.lang() === 'zh' ? ['讓虛擬，', '摸得到。'] : ['Make virtual,', 'feel real.']));
+  protected readonly words = computed(() =>
+    this.i18n.lang() === 'zh'
+      ? ['力回饋手套', 'MR 焊接訓練', '遠端觸覺重現', 'VR 插管訓練', 'AR 遙控機器人']
+      : ['Force-Feedback Gloves', 'MR Welding Training', 'Remote Texture Haptics', 'VR Intubation Training', 'AR Telerobotics'],
+  );
 
   private readonly layer = viewChild.required<ElementRef<HTMLElement>>('layer');
   private readonly text = viewChild.required<ElementRef<HTMLElement>>('text');
