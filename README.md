@@ -52,7 +52,11 @@ src/app/
 
 ## 3D 頭盔模型
 
-`public/models/headset.glb` 由 STL 轉出（約 74k 面、Meshopt 壓縮）。換模型時：
+`public/models/headset.glb` 由 STL 轉出（約 74k 面、Meshopt 壓縮）。
+
+模型來源：[“Apple Vision Pro 3D Model”](https://www.printables.com/model/868009-apple-vision-pro-3d-model) by Krazy_Kid59，授權 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。依授權要求，網站作品區左下角有標示出處，修改後的 `headset.glb` 同樣以 CC BY-SA 4.0 釋出（詳見 `public/models/ATTRIBUTION.md`）。換模型時記得一併更新出處。
+
+換模型時：
 
 ```bash
 npm i --no-save @gltf-transform/core@4 @gltf-transform/extensions@4 @gltf-transform/functions@4 meshoptimizer

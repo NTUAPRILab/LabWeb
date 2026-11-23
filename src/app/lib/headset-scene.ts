@@ -7,7 +7,9 @@ import {
   ACESFilmicToneMapping,
   CanvasTexture,
   CatmullRomCurve3,
+  CircleGeometry,
   Color,
+  DoubleSide,
   DirectionalLight,
   HemisphereLight,
   Mesh,
@@ -17,7 +19,10 @@ import {
   PlaneGeometry,
   PMREMGenerator,
   Scene,
+  ShaderMaterial,
   SRGBColorSpace,
+  Texture,
+  Vector2,
   Vector3,
   WebGLRenderer,
   type Material,
@@ -29,6 +34,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 
 export type HeadsetScene = {
   setProgress(p: number): void;
+  /** the project image shown inside the lenses */
+  setImage(url: string): void;
   setPointer(x: number, y: number): void;
   resize(): void;
   setActive(on: boolean): void;
@@ -77,15 +84,112 @@ function contactShadow() {
   return m;
 }
 
-// Camera path in model space: x right, y up, +z toward the visor. Starts straight above,
-// swings behind and down to eye level, then pushes through the band into the light seal.
+
+/**
+ * A display behind each lens. Shows the current project image; `blur` mixes in a pre-blurred
+ * copy (defocus), `offset` shifts the crop per eye (the two eyes see different images until
+ * they converge), `bright` makes the display "switch on" as you put the headset on.
+ */
+const lensShader = {
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D sharp;
+    uniform sampler2D soft;
+    uniform float blur;
+    uniform float bright;
+    uniform float fit;
+    uniform float opacity;
+    uniform vec2 offset;
+    varying vec2 vUv;
+    void main() {
+      vec2 p = vUv - 0.5;
+      vec2 uv = vec2(p.x * fit, p.y) * 0.92 + 0.5 + offset;
+      vec3 a = texture2D(sharp, uv).rgb;
+      vec3 b = texture2D(soft, uv).rgb;
+      vec3 col = mix(a, b, blur) * bright;
+      float r = length(p * 2.0);
+      col *= mix(0.35, 1.0, smoothstep(1.0, 0.55, r)); // lens vignette
+      gl_FragColor = vec4(col, opacity);
+      #include <colorspace_fragment>
+    }`,
+};
+
+function lensDisplay(x: number, y: number, z: number, w: number, h: number) {
+  const mat = new ShaderMaterial({
+    ...lensShader,
+    transparent: true,
+    side: DoubleSide,
+    uniforms: {
+      sharp: { value: null as Texture | null },
+      soft: { value: null as Texture | null },
+      blur: { value: 1 },
+      bright: { value: 0.5 },
+      fit: { value: (w / h) / (16 / 9) },
+      opacity: { value: 0 },
+      offset: { value: new Vector2() },
+    },
+  });
+  const m = new Mesh(new CircleGeometry(0.5, 64), mat);
+  m.scale.set(w, h, 1);
+  m.position.set(x, y, z);
+  m.rotation.y = Math.PI; // face the wearer (camera looks toward +z)
+  m.renderOrder = 2;
+  return m;
+}
+
+/** Sharp texture + a cheap, cross-browser blurred copy (downscale then let the GPU upscale). */
+function loadImage(url: string): Promise<{ sharp: Texture; soft: Texture }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const sharp = new Texture(img);
+      sharp.colorSpace = SRGBColorSpace;
+      sharp.needsUpdate = true;
+      const c = document.createElement('canvas');
+      c.width = 40;
+      c.height = 23;
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      const soft = new CanvasTexture(c);
+      soft.colorSpace = SRGBColorSpace;
+      resolve({ sharp, soft });
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Camera path in model space (x right, y up, +z toward the visor). It starts straight above,
+// swings behind, clears the top of the headband, drops inside the loop to eye level and
+// pushes up to the lenses.
 const POS = new CatmullRomCurve3(
-  [new Vector3(0, 8, 0.7), new Vector3(0, 4.4, -2.3), new Vector3(0, 1.5, -2.9), new Vector3(0, 0.24, -1.55), new Vector3(0, 0.08, 0.1), new Vector3(0, 0.05, 0.62)],
+  [
+    new Vector3(0, 8, 0.7),
+    new Vector3(0, 4.4, -2.3),
+    new Vector3(0, 1.6, -2.6),
+    new Vector3(0, 0.7, -1.35),
+    new Vector3(0, 0.16, -0.4),
+    new Vector3(0, -0.04, 0.15),
+    new Vector3(0, -0.07, 0.6),
+  ],
   false,
   'centripetal',
 );
 const AIM = new CatmullRomCurve3(
-  [new Vector3(0, 0, 0.7), new Vector3(0, 0, 0.35), new Vector3(0, 0.03, 0.5), new Vector3(0, 0.05, 1.0), new Vector3(0, 0.05, 2.2), new Vector3(0, 0.05, 3)],
+  [
+    new Vector3(0, 0, 0.7),
+    new Vector3(0, 0, 0.35),
+    new Vector3(0, -0.02, 0.55),
+    new Vector3(0, -0.06, 0.85),
+    new Vector3(0, -0.07, 1.2),
+    new Vector3(0, -0.075, 2),
+    new Vector3(0, -0.078, 3),
+  ],
   false,
   'centripetal',
 );
@@ -119,6 +223,14 @@ export async function createHeadsetScene(canvas: HTMLCanvasElement, modelUrl: st
     }
   });
   scene.add(model);
+
+  // displays behind the two lenses (centres measured from the model's lens rings).
+  // The camera looks toward +z, so the lens at +x is on the viewer's left.
+  const leftEye = lensDisplay(0.331, -0.078, 0.826, 0.43, 0.345);
+  const rightEye = lensDisplay(-0.351, -0.078, 0.826, 0.43, 0.345);
+  scene.add(leftEye, rightEye);
+  const eyes = [leftEye, rightEye].map((m) => (m.material as ShaderMaterial).uniforms);
+  let imageUrl = '';
 
   let progress = 0;
   let px = 0, py = 0; // pointer, -0.5..0.5
@@ -172,6 +284,17 @@ export async function createHeadsetScene(canvas: HTMLCanvasElement, modelUrl: st
     // idle turn in the overview so the top view isn't static
     model.rotation.y = (1 - pitch) * sx * 0.25;
     shadow.visible = progress < 0.4;
+
+    // lens displays: switch on, each eye focuses at its own moment, then the images converge
+    const on = smooth(seg(progress, 0.16, 0.34));
+    const converge = smooth(seg(progress, 0.37, 0.47));
+    eyes[0]['opacity'].value = eyes[1]['opacity'].value = on;
+    eyes[0]['bright'].value = eyes[1]['bright'].value = 0.45 + 0.7 * smooth(seg(progress, 0.24, 0.44));
+    eyes[0]['blur'].value = 1 - 0.95 * smooth(seg(progress, 0.31, 0.41));
+    eyes[1]['blur'].value = 1 - 0.95 * smooth(seg(progress, 0.36, 0.46));
+    const d = 0.13 * (1 - converge);
+    (eyes[0]['offset'].value as Vector2).set(d, 0.02 * (1 - converge));
+    (eyes[1]['offset'].value as Vector2).set(-d, -0.02 * (1 - converge));
     renderer.render(scene, camera);
   };
 
@@ -195,6 +318,22 @@ export async function createHeadsetScene(canvas: HTMLCanvasElement, modelUrl: st
   }
 
   return {
+    setImage(url) {
+      if (url === imageUrl) return;
+      imageUrl = url;
+      loadImage(url)
+        .then(({ sharp, soft }) => {
+          if (url !== imageUrl) return;
+          for (const u of eyes) {
+            (u['sharp'].value as Texture | null)?.dispose();
+            (u['soft'].value as Texture | null)?.dispose();
+            u['sharp'].value = sharp;
+            u['soft'].value = soft;
+          }
+          dirty = true;
+        })
+        .catch(() => {});
+    },
     setProgress(p) {
       if (p !== progress) {
         progress = p;

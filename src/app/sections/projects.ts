@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { scroll } from 'motion';
 import { Icon } from '../ui/icon';
 import { VideoDialog, type VideoItem } from '../ui/video-dialog';
@@ -39,7 +39,18 @@ import type { HeadsetScene } from '../lib/headset-scene';
 
       <!-- 3D headset -->
       <canvas #gl class="absolute inset-0 z-20 h-full w-full" aria-hidden="true"></canvas>
-      <div #dark class="pointer-events-none absolute inset-0 z-20 bg-[#0d120f]" style="opacity: 0"></div>
+      <!-- the two eye images merged into one frame, which then settles into the centre card -->
+      <div #merge class="pointer-events-none absolute top-1/2 left-1/2 z-[25] overflow-hidden bg-black" style="opacity: 0; transform: translate(-50%, -50%)">
+        <img [src]="current().src" alt="" class="h-full w-full object-cover" />
+      </div>
+      <!-- model credit (CC BY-SA 4.0 requires attribution) -->
+      <p #credit class="absolute bottom-3 left-4 z-30 max-w-[60%] text-[11px] leading-snug text-on-surface-variant/70 md:left-8">
+        3D model:
+        <a class="underline underline-offset-2 hover:text-on-surface" href="https://www.printables.com/model/868009-apple-vision-pro-3d-model" target="_blank" rel="noreferrer">“Apple Vision Pro 3D Model”</a>
+        by Krazy_Kid59,
+        <a class="underline underline-offset-2 hover:text-on-surface" href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
+        · {{ zh() ? '已簡化、重新上色' : 'simplified and recoloured' }}
+      </p>
 
       <!-- the view inside the headset: fades in once the camera is "wearing" it -->
       <div #screen class="absolute inset-0 z-10 overflow-hidden bg-[#0d120f] text-white" style="pointer-events: none; opacity: 0">
@@ -138,7 +149,8 @@ export class Projects {
   private readonly screen = viewChild.required<ElementRef<HTMLElement>>('screen');
   private readonly view = viewChild.required<ElementRef<HTMLElement>>('view');
   private readonly gl = viewChild.required<ElementRef<HTMLCanvasElement>>('gl');
-  private readonly dark = viewChild.required<ElementRef<HTMLElement>>('dark');
+  private readonly merge = viewChild.required<ElementRef<HTMLElement>>('merge');
+  private readonly credit = viewChild.required<ElementRef<HTMLElement>>('credit');
   private scene: HeadsetScene | null = null;
   private dragX: number | null = null;
   private dragged = false;
@@ -206,6 +218,7 @@ export class Projects {
   }
 
   constructor() {
+    effect(() => this.scene?.setImage(this.current().src));
     const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
     const destroyRef = inject(DestroyRef);
 
@@ -215,7 +228,8 @@ export class Projects {
       const hint = this.hint().nativeElement.style;
       const screen = this.screen().nativeElement.style;
       const view = this.view().nativeElement.style;
-      const dark = this.dark().nativeElement.style;
+      const merge = this.merge().nativeElement.style;
+      const credit = this.credit().nativeElement.style;
       const canvas = this.gl().nativeElement;
       let progress = 0;
       let near = false;
@@ -225,18 +239,30 @@ export class Projects {
         // overview text leaves as the camera starts moving
         intro.opacity = hint.opacity = String(map(p, [0.02, 0.1], [1, 0]));
         intro.transform = `translateY(${map(p, [0, 0.12], [0, -60])}px)`;
-        // inside the light seal it goes dark, then the display lights up and focuses
-        dark.opacity = String(Math.min(map(p, [0.4, 0.47], [0, 1]), map(p, [0.48, 0.55], [1, 0])));
-        screen.opacity = String(map(p, [0.46, 0.52], [0, 1]));
-        const blur = map(p, [0.46, 0.58], [14, 0]);
+        credit.opacity = String(map(p, [0.3, 0.4], [1, 0]));
+        // the two lens images become one full frame, which shrinks into the centre card
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const cardW = Math.min(W < 768 ? W * 0.8 : W * 0.58, 1000);
+        const k = map(p, [0.5, 0.6], [0, 1]);
+        const e = k * k * (3 - 2 * k);
+        merge.width = `${W + (cardW - W) * e}px`;
+        merge.height = `${H + ((cardW * 9) / 16 - H) * e}px`;
+        merge.top = `${50 - 3 * e}%`;
+        merge.borderRadius = `${(W < 768 ? 28 : 40) * e}px`;
+        merge.opacity = String(Math.min(map(p, [0.44, 0.49], [0, 1]), map(p, [0.6, 0.63], [1, 0])));
+        const mb = map(p, [0.44, 0.5], [10, 0]);
+        merge.filter = mb > 0.05 ? `blur(${mb.toFixed(2)}px)` : 'none';
+        // the big screen around it fades in and focuses
+        screen.opacity = String(map(p, [0.5, 0.55], [0, 1]));
+        const blur = map(p, [0.5, 0.6], [14, 0]);
         view.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        view.transform = `scale(${map(p, [0.46, 0.6], [1.25, 1])})`;
-        const showGl = p < 0.5;
+        view.transform = `scale(${map(p, [0.5, 0.62], [1.2, 1])})`;
+        const showGl = p < 0.51;
         canvas.style.visibility = showGl ? 'visible' : 'hidden';
         this.scene?.setProgress(p);
         this.scene?.setActive(near && showGl);
 
-        const live = p >= 0.55;
+        const live = p >= 0.6;
         screen.pointerEvents = live ? 'auto' : 'none';
         if (live !== this.interactive()) this.interactive.set(live);
       };
@@ -261,6 +287,7 @@ export class Projects {
               .then((sc) => {
                 if (disposed) return sc.dispose();
                 this.scene = sc;
+                sc.setImage(this.current().src);
                 draw();
               })
               .catch((err) => console.error('headset scene failed', err));
