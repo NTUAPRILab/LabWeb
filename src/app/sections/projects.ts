@@ -1,36 +1,16 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { scroll } from 'motion';
 import { Icon } from '../ui/icon';
 import { VideoDialog, type VideoItem } from '../ui/video-dialog';
 import { links, showcase } from '../data';
 import { map } from '../lib/anim';
 import { I18nService } from '../lib/i18n';
-
-const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-/** Rounded rectangle path, centred on (cx, cy). */
-function rr(cx: number, cy: number, w: number, h: number, r: number) {
-  r = Math.min(r, w / 2, h / 2);
-  const x0 = cx - w / 2, y0 = cy - h / 2, x1 = cx + w / 2, y1 = cy + h / 2;
-  return `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
-}
-
-/** Headset shell seen from the wearer's side: a rounded body with a nose notch at the bottom. */
-function shell(cx: number, cy: number, w: number, h: number, r: number, nw: number, nd: number) {
-  const x0 = cx - w / 2, y0 = cy - h / 2, x1 = cx + w / 2, y1 = cy + h / 2;
-  const n = nw / 2;
-  return (
-    `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}` +
-    `H${cx + n}C${cx + n * 0.55} ${y1} ${cx + n * 0.5} ${y1 - nd} ${cx} ${y1 - nd}C${cx - n * 0.5} ${y1 - nd} ${cx - n * 0.55} ${y1} ${cx - n} ${y1}` +
-    `H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`
-  );
-}
+import type { HeadsetScene } from '../lib/headset-scene';
 
 /**
- * Projects as a VR headset. Scrolling down zooms into the headset: the two lenses merge,
- * the frame slides past the screen edges and the blurry view comes into focus — like putting
- * it on. Inside is a big screen where you pick a project left / right and play it.
+ * Projects as a VR headset (three.js). The section opens on a top view of the headset; scrolling
+ * flies the camera behind it, down to eye level and into the light seal — like putting it on —
+ * and the display comes into focus as a big screen where you pick a project left / right.
  */
 @Component({
   selector: 'app-projects',
@@ -38,7 +18,8 @@ function shell(cx: number, cy: number, w: number, h: number, r: number, nw: numb
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     id: 'projects',
-    class: 'relative block h-[420vh] scroll-mt-0',
+    class: 'relative block h-[520vh] scroll-mt-0',
+    '(pointermove)': 'onPointer($event)',
     '(document:keydown)': 'onKey($event)',
   },
   template: `
@@ -56,8 +37,23 @@ function shell(cx: number, cy: number, w: number, h: number, r: number, nw: numb
         {{ zh() ? '往下捲動，戴上看看' : 'Scroll to put it on' }} <svg appIcon="arrow-down" class="size-4 animate-bounce"></svg>
       </p>
 
-      <!-- the view inside the headset: clipped to the lenses until it fills the screen -->
-      <div #screen class="absolute inset-0 z-10 overflow-hidden bg-[#0d120f] text-white" style="pointer-events: none">
+      <!-- 3D headset -->
+      <canvas #gl class="absolute inset-0 z-20 h-full w-full" aria-hidden="true"></canvas>
+      <!-- the two eye images merged into one frame, which then settles into the centre card -->
+      <div #merge class="pointer-events-none absolute top-1/2 left-1/2 z-[25] overflow-hidden bg-black" style="opacity: 0; transform: translate(-50%, -50%)">
+        <img [src]="current().src" alt="" class="h-full w-full object-cover" />
+      </div>
+      <!-- model credit (CC BY-SA 4.0 requires attribution) -->
+      <p #credit class="absolute bottom-3 left-4 z-30 max-w-[60%] text-[11px] leading-snug text-on-surface-variant/70 md:left-8">
+        3D model:
+        <a class="underline underline-offset-2 hover:text-on-surface" href="https://www.printables.com/model/868009-apple-vision-pro-3d-model" target="_blank" rel="noreferrer">“Apple Vision Pro 3D Model”</a>
+        by Krazy_Kid59,
+        <a class="underline underline-offset-2 hover:text-on-surface" href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>
+        · {{ zh() ? '已簡化、重新上色' : 'simplified and recoloured' }}
+      </p>
+
+      <!-- the view inside the headset: fades in once the camera is "wearing" it -->
+      <div #screen class="absolute inset-0 z-10 overflow-hidden bg-[#0d120f] text-white" style="pointer-events: none; opacity: 0">
         <div #view class="absolute inset-0 will-change-transform">
           @for (it of [current()]; track it.id) {
             <img [src]="it.src" alt="" class="fade-in absolute inset-0 h-full w-full scale-125 object-cover opacity-45 blur-3xl" />
@@ -129,22 +125,6 @@ function shell(cx: number, cy: number, w: number, h: number, r: number, nw: numb
         </div>
       </div>
 
-      <!-- headset frame drawn over the view -->
-      <svg class="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible" aria-hidden="true">
-        <defs>
-          <mask id="vr-lens-mask" maskUnits="userSpaceOnUse" x="-50000" y="-50000" width="100000" height="100000">
-            <path #maskShell fill="white" />
-            <path #maskLens fill="black" />
-          </mask>
-          <linearGradient id="vr-shell-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#34403a" />
-            <stop offset="1" stop-color="#151a17" />
-          </linearGradient>
-        </defs>
-        <path #strap fill="#3f6b55" />
-        <path #shell fill="url(#vr-shell-fill)" mask="url(#vr-lens-mask)" />
-        <path #rim fill="none" stroke="rgba(193,236,213,0.35)" stroke-width="2" />
-      </svg>
     </div>
 
     @if (playing(); as it) {
@@ -168,11 +148,10 @@ export class Projects {
   private readonly hint = viewChild.required<ElementRef<HTMLElement>>('hint');
   private readonly screen = viewChild.required<ElementRef<HTMLElement>>('screen');
   private readonly view = viewChild.required<ElementRef<HTMLElement>>('view');
-  private readonly maskShell = viewChild.required<ElementRef<SVGPathElement>>('maskShell');
-  private readonly maskLens = viewChild.required<ElementRef<SVGPathElement>>('maskLens');
-  private readonly shellPath = viewChild.required<ElementRef<SVGPathElement>>('shell');
-  private readonly strap = viewChild.required<ElementRef<SVGPathElement>>('strap');
-  private readonly rim = viewChild.required<ElementRef<SVGPathElement>>('rim');
+  private readonly gl = viewChild.required<ElementRef<HTMLCanvasElement>>('gl');
+  private readonly merge = viewChild.required<ElementRef<HTMLElement>>('merge');
+  private readonly credit = viewChild.required<ElementRef<HTMLElement>>('credit');
+  private scene: HeadsetScene | null = null;
   private dragX: number | null = null;
   private dragged = false;
   private lastWheel = 0;
@@ -208,6 +187,10 @@ export class Projects {
     e.preventDefault();
   }
 
+  protected onPointer(e: PointerEvent) {
+    this.scene?.setPointer(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
+  }
+
   protected onWheel(e: WheelEvent) {
     // horizontal wheel / trackpad swipe flips projects; vertical keeps scrolling the page
     if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || Math.abs(e.deltaX) < 12) return;
@@ -235,6 +218,7 @@ export class Projects {
   }
 
   constructor() {
+    effect(() => this.scene?.setImage(this.current().src));
     const host = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
     const destroyRef = inject(DestroyRef);
 
@@ -244,55 +228,41 @@ export class Projects {
       const hint = this.hint().nativeElement.style;
       const screen = this.screen().nativeElement.style;
       const view = this.view().nativeElement.style;
-      const maskShell = this.maskShell().nativeElement;
-      const maskLens = this.maskLens().nativeElement;
-      const shellEl = this.shellPath().nativeElement;
-      const strap = this.strap().nativeElement;
-      const rim = this.rim().nativeElement;
+      const merge = this.merge().nativeElement.style;
+      const credit = this.credit().nativeElement.style;
+      const canvas = this.gl().nativeElement;
       let progress = 0;
+      let near = false;
 
       const draw = () => {
         const p = progress;
-        const W = stage.clientWidth;
-        const H = stage.clientHeight;
-        const B = W < 768 ? W * 0.84 : Math.min(W * 0.5, 620); // headset width at rest
-
-        const zoom = ease(map(p, [0.05, 0.5], [0, 1]));
-        const merge = ease(map(p, [0.1, 0.42], [0, 1]));
-
-        // lens geometry in headset units (1 = headset width)
-        const lw = lerp(0.385, 0.88, merge);
-        const lh = lerp(0.34, 0.42, merge);
-        const lx = lerp(0.215, 0, merge);
-        const lr = lerp(0.15, 0.1, merge);
-        // scale so the merged lens ends up larger than the viewport
-        const sEnd = Math.max(W / (0.88 * B), H / (0.42 * B)) * 1.12;
-        const s = Math.exp(Math.log(sEnd) * zoom);
-        const u = B * s;
-        const cx = W / 2;
-        const cy = lerp(H * 0.62, H * 0.5, zoom);
-
-        const lens = rr(cx - lx * u, cy, lw * u, lh * u, lr * u) + rr(cx + lx * u, cy, lw * u, lh * u, lr * u);
-        const body = shell(cx, cy, u, 0.52 * u, 0.2 * u, 0.17 * u, lerp(0.085, 0, merge) * u);
-        maskShell.setAttribute('d', body);
-        maskLens.setAttribute('d', lens);
-        shellEl.setAttribute('d', body);
-        rim.setAttribute('d', lens);
-        rim.style.opacity = String(1 - merge);
-        // strap: one band on each side, tucked under the shell's edge
-        strap.setAttribute('d', rr(cx - 0.6 * u, cy - 0.02 * u, 0.24 * u, 0.13 * u, 0.065 * u) + rr(cx + 0.6 * u, cy - 0.02 * u, 0.24 * u, 0.13 * u, 0.065 * u));
-        strap.style.opacity = String(map(p, [0.04, 0.16], [1, 0]));
-
-        const done = zoom >= 1;
-        screen.clipPath = done ? 'none' : `path("${lens}")`;
-        const blur = map(p, [0.12, 0.47], [12, 0]);
+        // overview text leaves as the camera starts moving
+        intro.opacity = hint.opacity = String(map(p, [0.02, 0.1], [1, 0]));
+        intro.transform = `translateY(${map(p, [0, 0.12], [0, -60])}px)`;
+        credit.opacity = String(map(p, [0.3, 0.4], [1, 0]));
+        // the two lens images become one full frame, which shrinks into the centre card
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const cardW = Math.min(W < 768 ? W * 0.8 : W * 0.58, 1000);
+        const k = map(p, [0.5, 0.6], [0, 1]);
+        const e = k * k * (3 - 2 * k);
+        merge.width = `${W + (cardW - W) * e}px`;
+        merge.height = `${H + ((cardW * 9) / 16 - H) * e}px`;
+        merge.top = `${50 - 3 * e}%`;
+        merge.borderRadius = `${(W < 768 ? 28 : 40) * e}px`;
+        merge.opacity = String(Math.min(map(p, [0.44, 0.49], [0, 1]), map(p, [0.6, 0.63], [1, 0])));
+        const mb = map(p, [0.44, 0.5], [10, 0]);
+        merge.filter = mb > 0.05 ? `blur(${mb.toFixed(2)}px)` : 'none';
+        // the big screen around it fades in and focuses
+        screen.opacity = String(map(p, [0.5, 0.55], [0, 1]));
+        const blur = map(p, [0.5, 0.6], [14, 0]);
         view.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        view.transform = `scale(${map(p, [0.05, 0.5], [1.35, 1])})`;
+        view.transform = `scale(${map(p, [0.5, 0.62], [1.2, 1])})`;
+        const showGl = p < 0.51;
+        canvas.style.visibility = showGl ? 'visible' : 'hidden';
+        this.scene?.setProgress(p);
+        this.scene?.setActive(near && showGl);
 
-        intro.opacity = hint.opacity = String(map(p, [0.02, 0.12], [1, 0]));
-        intro.transform = `translateY(${map(p, [0, 0.15], [0, -60])}px)`;
-
-        const live = p >= 0.5;
+        const live = p >= 0.6;
         screen.pointerEvents = live ? 'auto' : 'none';
         if (live !== this.interactive()) this.interactive.set(live);
       };
@@ -304,11 +274,40 @@ export class Projects {
         },
         { target: host, offset: ['start start', 'end end'] },
       );
-      const ro = new ResizeObserver(draw);
+
+      // load three.js + the model only when the section gets close
+      let disposed = false;
+      const io = new IntersectionObserver(
+        ([e]) => {
+          near = e.isIntersecting;
+          if (near && !this.scene) {
+            const debug = new URLSearchParams(location.search).has('model-debug');
+            import('../lib/headset-scene')
+              .then((m) => m.createHeadsetScene(canvas, 'models/headset.glb', debug))
+              .then((sc) => {
+                if (disposed) return sc.dispose();
+                this.scene = sc;
+                sc.setImage(this.current().src);
+                draw();
+              })
+              .catch((err) => console.error('headset scene failed', err));
+          }
+          draw();
+        },
+        { rootMargin: '800px 0px' },
+      );
+      io.observe(host);
+      const ro = new ResizeObserver(() => {
+        this.scene?.resize();
+        draw();
+      });
       ro.observe(stage);
       destroyRef.onDestroy(() => {
+        disposed = true;
         stop();
+        io.disconnect();
         ro.disconnect();
+        this.scene?.dispose();
       });
     });
   }

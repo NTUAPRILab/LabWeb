@@ -49,7 +49,7 @@ export class PhotoHand {
   protected measure() {
     const w = this.el.clientWidth;
     const n = Math.max(1, this.images().length);
-    const card = w < 640 ? 170 : Math.round(Math.min(320, w * 0.25));
+    const card = w < 640 ? 190 : Math.round(Math.min(360, w * 0.28));
     this.cardW.set(card);
     // spread the hand over most of the available width
     this.spacing.set(Math.min(card * 0.6, (w - card * 0.9) / Math.max(1, n - 1)));
@@ -61,7 +61,7 @@ export class PhotoHand {
     const h = this.cardW() * 0.75;
     const hov = this.hovered();
     let x = off * this.spacing();
-    let y = h * 0.45 + off * off * 4; // about half of each card hangs below the edge; outer cards sit lower
+    let y = h * 0.36 + off * off * 4; // about half of each card hangs below the edge; outer cards sit lower
     let rot = off * 5;
     let scale = 1;
     if (hov === i) {

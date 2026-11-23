@@ -8,6 +8,7 @@
 - Angular 22（standalone components、signals、zoneless）
 - Tailwind CSS v4
 - [motion](https://motion.dev)（原生 JS API）負責彈簧、捲動與進場動畫
+- [three.js](https://threejs.org) 作品區的 3D 頭盔（延遲載入，不影響首屏）
 
 ## 開發
 
@@ -48,6 +49,21 @@ src/app/
 
 改 `src/app/footer-wave.config.ts`；或在網址後面加 `?wave`（例如 `http://localhost:4200/?wave`），
 右下角會出現滑桿面板，調好後按「複製設定」貼回設定檔。
+
+## 3D 頭盔模型
+
+`public/models/headset.glb` 由 STL 轉出（約 74k 面、Meshopt 壓縮）。
+
+模型來源：[“Apple Vision Pro 3D Model”](https://www.printables.com/model/868009-apple-vision-pro-3d-model) by Krazy_Kid59，授權 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。依授權要求，網站作品區左下角有標示出處，修改後的 `headset.glb` 同樣以 CC BY-SA 4.0 釋出（詳見 `public/models/ATTRIBUTION.md`）。換模型時記得一併更新出處。
+
+換模型時：
+
+```bash
+npm i --no-save @gltf-transform/core@4 @gltf-transform/extensions@4 @gltf-transform/functions@4 meshoptimizer
+node tools/stl-to-glb.mjs 你的模型.stl public/models/headset.glb
+```
+
+網址加 `?model-debug` 會把每個零件上不同顏色，方便檢查分組；`?model-look` 可在 Console 用 `__headset.look([x,y,z],[tx,ty,tz])` 自由看模型。
 
 ## 部署注意
 

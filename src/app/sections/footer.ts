@@ -19,15 +19,15 @@ import { I18nService } from '../lib/i18n';
     <div class="mx-auto max-w-[1360px] px-4 md:px-8">
       <div class="relative overflow-hidden rounded-[3rem] bg-primary-container text-on-primary-container md:rounded-[4rem]">
         <div>
-          <div appReveal class="px-6 pt-14 pb-6 md:px-14 md:pt-20 md:pb-4">
+          <div appReveal class="px-6 pt-12 pb-4 md:px-14 md:pt-14 md:pb-2">
             @if (zh()) {
-              <h2 class="text-4xl leading-[1.05] font-bold tracking-[-0.03em] [text-wrap:balance] md:text-5xl xl:text-6xl">一起把想法，<br />做成摸得到的東西。</h2>
-              <p class="mt-6 max-w-md text-lg opacity-80">歡迎參訪、合作與加入 APRILab。</p>
+              <h2 class="text-4xl leading-[1.1] font-bold tracking-[-0.03em] md:text-5xl md:whitespace-nowrap xl:text-6xl">一起把想法，做成摸得到的東西。</h2>
+              <p class="mt-4 max-w-md text-lg opacity-80">歡迎參訪、合作與加入 APRILab。</p>
             } @else {
-              <h2 class="text-4xl leading-[1.05] font-bold tracking-[-0.03em] [text-wrap:balance] md:text-5xl xl:text-6xl">Turn ideas into<br />things you can feel.</h2>
-              <p class="mt-6 max-w-md text-lg opacity-80">Visits, collaborations, and new members are always welcome at APRILab.</p>
+              <h2 class="text-4xl leading-[1.1] font-bold tracking-[-0.03em] md:text-5xl md:whitespace-nowrap xl:text-6xl">Turn ideas into things you can feel.</h2>
+              <p class="mt-4 max-w-md text-lg opacity-80">Visits, collaborations, and new members are always welcome at APRILab.</p>
             }
-            <div class="mt-8 flex flex-wrap gap-3">
+            <div class="mt-6 flex flex-wrap gap-3">
               <a routerLink="/members" class="btn bg-primary text-on-primary hover:bg-[#335a47]">
                 {{ zh() ? '認識成員' : 'Meet the Team' }} <svg appIcon="arrow-up-right" class="size-5"></svg>
               </a>
@@ -37,7 +37,7 @@ import { I18nService } from '../lib/i18n';
             </div>
           </div>
           <!-- 活動花絮: cards hang off the bottom edge; the one you point at rises -->
-          <app-photo-hand class="relative h-[220px] md:h-[300px]" [images]="photos" [href]="links.gallery" [label]="zh() ? '活動花絮' : 'Gallery'" />
+          <app-photo-hand class="relative h-[190px] md:h-[250px]" [images]="photos" [href]="links.gallery" [label]="zh() ? '活動花絮' : 'Gallery'" />
         </div>
       </div>
     </div>
