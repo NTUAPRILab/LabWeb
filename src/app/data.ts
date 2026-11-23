@@ -7,14 +7,14 @@ export const navItems = [
   { name: '作品影片', en: 'Projects', link: '#projects' },
   { name: '最新消息', en: 'News', link: '#news' },
   { name: '學術發表', en: 'Publications', link: `${WIX}/publication` },
-  { name: '實驗室成員', en: 'Members', link: `${WIX}/%E5%89%AF%E6%9C%AC-research-area-%E7%A0%94%E7%A9%B6%E9%A0%98%E5%9F%9F` },
+  { name: '實驗室成員', en: 'Members', link: '/members' },
 ];
 
 export const links = {
   youtube: 'https://www.youtube.com/@ntuaprilab8618',
   publications: `${WIX}/publication`,
   patents: `${WIX}/copy-of-publication`,
-  members: `${WIX}/%E5%89%AF%E6%9C%AC-research-area-%E7%A0%94%E7%A9%B6%E9%A0%98%E5%9F%9F`,
+  members: '/members',
   gallery: `${WIX}/gallery`,
   server: 'https://aprilab.diskstation.me:5001/',
 };
@@ -114,7 +114,7 @@ export const news: { year: string; items: NewsItem[] }[] = [
       {
         kind: 'honor',
         text: '陳湘鳳教授入選 World’s Top 2% Scientist（2020–2025，終身與年度影響力），Stanford University 與 Elsevier 發布',
-        en: "Prof. Hsiang-Feng Chen named among World's Top 2% Scientists (2020–2025, career-long & single-year impact) by Stanford University & Elsevier",
+        en: "Prof. Shana Smith named among World's Top 2% Scientists (2020–2025, career-long & single-year impact) by Stanford University & Elsevier",
       },
     ],
   },
@@ -164,7 +164,7 @@ export const news: { year: string; items: NewsItem[] }[] = [
       {
         kind: 'award',
         text: '陳湘鳳教授獲 2022 國科會自動化學門優良海報獎',
-        en: 'Prof. Hsiang-Feng Chen received the 2022 NSTC Automation Division Excellent Poster Award',
+        en: 'Prof. Shana Smith received the 2022 NSTC Automation Division Excellent Poster Award',
       },
       {
         kind: 'award',
@@ -283,4 +283,3 @@ export const showcase = [
   { id: 'rLjpnnaARmk', category: 'Interaction', title: '虛擬鼓棒', en: 'Virtual Drumstick' },
 ].map((v) => ({ ...v, src: yt(v.id), link: `https://www.youtube.com/watch?v=${v.id}` }));
 
-export const bounceImages = ['Nbqx2FZOz_4', 'PIB7WxVzz0g', 'BuJRlx7nT9A', 'zzXqx8iT2Cw', 'QzVuLviOxmU'].map(yt);

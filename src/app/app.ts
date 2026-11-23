@@ -1,11 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, effect, inject, signal, viewChild, viewChildren } from '@angular/core';
 import { animate } from 'motion';
 import { Icon } from './ui/icon';
-import { Hero } from './sections/hero';
-import { Showcase } from './sections/showcase';
-import { Research } from './sections/research';
-import { Projects } from './sections/projects';
-import { News } from './sections/news';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { Footer } from './sections/footer';
 import { links, navItems } from './data';
 import { I18nService } from './lib/i18n';
@@ -13,24 +9,25 @@ import { I18nService } from './lib/i18n';
 /** Transparent bar pinned flush at the top; once you scroll it gains a blurred background. */
 @Component({
   selector: 'app-top-bar',
-  imports: [Icon],
+  imports: [Icon, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'fixed inset-x-0 top-0 z-40', '(window:scroll)': 'onScroll()' },
   template: `
     <div #bar class="w-full px-4 py-2.5 sm:px-6">
       <div class="mx-auto flex w-full max-w-[1360px] items-center justify-between gap-4">
-        <a href="#top" aria-label="APRILab 首頁" class="shrink-0 pl-2">
+        <a routerLink="/" fragment="top" aria-label="APRILab 首頁" class="shrink-0 pl-2">
           <span class="block h-9 w-32 bg-no-repeat" style="background-image: url(aprilab-logo.png); background-size: 100% auto; background-position: 0 45.4%"></span>
         </a>
         <nav class="relative hidden items-center md:flex" (mouseleave)="leave()">
           <span #pill class="pointer-events-none absolute top-0 left-0 rounded-full bg-primary-container opacity-0"></span>
           @for (n of navItems; track n.name; let i = $index) {
-            <a
-              #navLink
-              [href]="n.link"
-              (mouseenter)="hover(i)"
-              class="relative rounded-full px-4 py-2 text-[15px] font-medium text-on-surface-variant transition-colors hover:text-on-surface"
-            >{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+            @if (n.link.startsWith('#')) {
+              <a #navLink routerLink="/" [fragment]="n.link.slice(1)" (mouseenter)="hover(i)" class="relative rounded-full px-4 py-2 text-[15px] font-medium text-on-surface-variant transition-colors hover:text-on-surface">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+            } @else if (n.link.startsWith('/')) {
+              <a #navLink [routerLink]="n.link" (mouseenter)="hover(i)" class="relative rounded-full px-4 py-2 text-[15px] font-medium text-on-surface-variant transition-colors hover:text-on-surface">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+            } @else {
+              <a #navLink [href]="n.link" (mouseenter)="hover(i)" class="relative rounded-full px-4 py-2 text-[15px] font-medium text-on-surface-variant transition-colors hover:text-on-surface">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+            }
           }
         </nav>
         <div class="flex items-center gap-2">
@@ -53,7 +50,13 @@ import { I18nService } from './lib/i18n';
     @if (open()) {
       <nav class="menu-in absolute inset-x-3 top-[72px] flex flex-col gap-1 rounded-[2rem] bg-surface-high p-3 shadow-xl md:hidden" animate.leave="fade-out">
         @for (n of navItems; track n.name) {
-          <a [href]="n.link" (click)="open.set(false)" class="rounded-full px-5 py-3 text-lg active:bg-primary-container">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+          @if (n.link.startsWith('#')) {
+            <a routerLink="/" [fragment]="n.link.slice(1)" (click)="open.set(false)" class="rounded-full px-5 py-3 text-lg active:bg-primary-container">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+          } @else if (n.link.startsWith('/')) {
+            <a [routerLink]="n.link" (click)="open.set(false)" class="rounded-full px-5 py-3 text-lg active:bg-primary-container">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+          } @else {
+            <a [href]="n.link" (click)="open.set(false)" class="rounded-full px-5 py-3 text-lg active:bg-primary-container">{{ i18n.lang() === 'zh' ? n.name : n.en }}</a>
+          }
         }
         <a [href]="links.server" target="_blank" rel="noreferrer" (click)="open.set(false)" class="rounded-full px-5 py-3 text-lg font-medium text-primary active:bg-primary-container">Lab Server</a>
       </nav>
@@ -112,16 +115,12 @@ export class TopBar {
 
 @Component({
   selector: 'app-root',
-  imports: [TopBar, Hero, Showcase, Research, Projects, News, Footer],
+  imports: [TopBar, RouterOutlet, Footer],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-top-bar />
     <main>
-      <app-hero />
-      <app-showcase />
-      <app-research />
-      <app-projects />
-      <app-news />
+      <router-outlet />
     </main>
     <app-footer />
   `,
