@@ -37,7 +37,7 @@ const kinds: Record<NewsItem['kind'], { label: string; en: string; icon: string;
       </div>
 
       <!-- M3 segmented button with a springy sliding indicator -->
-      <div class="relative mt-10 inline-flex max-w-full flex-wrap gap-1 rounded-full bg-surface-high p-1.5" role="tablist">
+      <div class="relative mt-10 inline-flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-full bg-surface-high p-1.5 [scrollbar-width:none] sm:gap-1" role="tablist">
         <span #indicator class="absolute top-0 left-0 rounded-full bg-primary"></span>
         @for (f of filters; track f) {
           <button
@@ -45,7 +45,7 @@ const kinds: Record<NewsItem['kind'], { label: string; en: string; icon: string;
             role="tab"
             [attr.aria-selected]="filter() === f"
             (click)="select(f)"
-            class="relative rounded-full px-5 py-2.5 text-sm font-medium transition-colors active:scale-95"
+            class="relative shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-medium transition-colors active:scale-95 sm:px-5 sm:py-2.5 sm:text-sm"
             [class]="filter() === f ? 'text-on-primary' : 'text-on-surface-variant hover:text-on-surface'"
           >
             {{ i18n.lang() === 'zh' ? f : filterEn[f] }}

@@ -108,7 +108,7 @@ export const news: { year: string; items: NewsItem[] }[] = [
     items: [
       {
         kind: 'award',
-        text: '2025 Future Tech Award：A Metaverse-Enhanced Extended Reality Neck Simulator for Ultrasound-Guided Procedures and Surgical Training',
+        text: '2025 未來科技獎（Future Tech Award）：應用於超音波導引處置與手術訓練之元宇宙延展實境頸部模擬器',
         en: '2025 Future Tech Award: A Metaverse-Enhanced Extended Reality Neck Simulator for Ultrasound-Guided Procedures and Surgical Training',
       },
       {
