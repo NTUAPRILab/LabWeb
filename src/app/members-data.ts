@@ -45,7 +45,7 @@ export type Member = { name: string; role: Role; email: string; photo: string | 
 const m = (name: string, role: Role, email: string, photo: string | null): Member => ({ name, role, email, photo });
 
 export const students: Member[] = [
-  m('許瀚宸', 'phd', 'd15522005@ntu.edu.tw', '/members/d15522005.jpg'),
+  m('許瀚宸', 'phd', 'd15522005@ntu.edu.tw', 'assets/members/d15522005.jpg'),
   m('鄭尹薰', 'm3', 'r13522629@ntu.edu.tw', '05c8bb_adfe8ad7bf324293912f6973a09cbeb8~mv2.jpg'),
   m('薛皓澤', 'm3', 'r13522605@ntu.edu.tw', '05c8bb_bede19e7b4dd47c884f2673ba956e9cd~mv2.jpeg'),
   m('陳均合', 'm3', 'R13522647@ntu.edu.tw', '05c8bb_4e3b96671ce84e7d9a80d53172467354~mv2.jpg'),
@@ -54,12 +54,12 @@ export const students: Member[] = [
   m('戴維均', 'm2', 'R14522626@ntu.edu.tw', null),
   m('陳加祐', 'm2', 'R14522647@ntu.edu.tw', null),
   m('陳一豪', 'm2', 'R14522611@ntu.edu.tw', '05c8bb_984aa3bb01b540ec97c40258289348f6~mv2.jpg'),
-  m('柯博文', 'm1', 'r15522641@ntu.edu.tw', null),
-  m('簡恩生', 'm1', 'r15522616@ntu.edu.tw', null),
-  m('黃浩軒', 'm1', '', null),
+  m('柯博文', 'm1', 'r15522641@ntu.edu.tw', 'assets/members/r15522641.jpg'),
+  m('簡恩生', 'm1', 'r15522616@ntu.edu.tw', 'assets/members/r15522616.jpg'),
+  m('黃浩軒', 'm1', '', 'assets/members/huang-hao-xuan.jpg'),
   m('王宣詠', 'm1', '', null),
   m('李俊毅', 'm1', 'r15522622@ntu.edu.tw', null),
-  m('郭新豪', 'm1', 'r15522630@ntu.edu.tw', '/members/r15522630.jpg'),
+  m('郭新豪', 'm1', 'r15522630@ntu.edu.tw', 'assets/members/r15522630.jpg'),
 ];
 
 export const alumni: Member[] = [
@@ -121,10 +121,10 @@ export const galleryPhotos = [
   '05c8bb_aabee22b156748bea95d33f3e5934c5b~mv2.jpg',
   '05c8bb_891e57f4c3ca453bac8ca0a66c723187~mv2_d_4032_3024_s_4_2.jpg',
   '05c8bb_c22df1edaeb345e68c0e3a503f7b24a3~mv2_d_2640_1488_s_2.jpg',
-  '05c8bb_e579c27b1eb046ef959f9a9c8827238b~mv2_d_2364_1773_s_2.jpg',
+  'assets/gallery/outing-1.jpg',
   '05c8bb_4c1c20cbee434e82b3ae0007088a3616~mv2.jpg',
   '05c8bb_04db234bf2d648df950cfe81bcc67799~mv2_d_4011_2512_s_4_2.jpg',
-  '05c8bb_f95307a0316a4be3ad302bae0a325c98~mv2_d_4032_1960_s_2.jpg',
+  'assets/gallery/outing-2.jpg',
   'bf57ef_a033e41fd1f340e69d8584284739ab48~mv2_d_2048_1536_s_2.jpg',
   '05c8bb_500d9e449f594dabbc1550d2107bfd49~mv2.jpg',
 ];

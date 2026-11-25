@@ -6,13 +6,13 @@ export const navItems = [
   { name: '研究領域', en: 'Research', link: '#research' },
   { name: '作品影片', en: 'Projects', link: '#projects' },
   { name: '最新消息', en: 'News', link: '#news' },
-  { name: '學術發表', en: 'Publications', link: `${WIX}/publication` },
+  { name: '學術發表', en: 'Publications', link: '/publications' },
   { name: '實驗室成員', en: 'Members', link: '/members' },
 ];
 
 export const links = {
   youtube: 'https://www.youtube.com/@ntuaprilab8618',
-  publications: `${WIX}/publication`,
+  publications: '/publications',
   patents: `${WIX}/copy-of-publication`,
   members: '/members',
   gallery: `${WIX}/gallery`,
@@ -32,7 +32,6 @@ const videos: Video[] = [
   { id: 'as6L2iKR3sA', title: 'MR Milling Training' },
   { id: 'ni10vJHPZ0o', title: 'AR Robot' },
   { id: 'zy_XHWHqohw', title: 'Teleoperation for Remote Surface Textures' },
-  { id: 'rLjpnnaARmk', title: '虛擬鼓棒 Virtual Drumstick' },
   { id: 'PIB7WxVzz0g', title: 'AR Motor Demo' },
   { id: 'Nbqx2FZOz_4', title: 'Handheld Haptic Feedback Device' },
   { id: 'QzVuLviOxmU', title: '路考模擬 Driving Test Simulator' },
@@ -280,6 +279,5 @@ export const showcase = [
   { id: 'zy_XHWHqohw', category: 'Haptics', title: '遠端表面紋理觸覺重現', en: 'Teleoperation for Remote Surface Textures' },
   { id: 'as6L2iKR3sA', category: 'Mixed Reality', title: '混合實境銑床訓練', en: 'MR Milling Training' },
   { id: 'ni10vJHPZ0o', category: 'Augmented Reality', title: 'AR 機器人', en: 'AR Robot' },
-  { id: 'rLjpnnaARmk', category: 'Interaction', title: '虛擬鼓棒', en: 'Virtual Drumstick' },
 ].map((v) => ({ ...v, src: yt(v.id), link: `https://www.youtube.com/watch?v=${v.id}` }));
 

@@ -106,7 +106,7 @@ import type { HeadsetScene } from '../lib/headset-scene';
           </div>
 
           <!-- controls -->
-          <div class="absolute inset-x-0 bottom-[6svh] flex flex-col items-center gap-3">
+          <div class="absolute inset-x-0 bottom-[6svh] z-[110] flex flex-col items-center gap-3">
             <div class="flex items-center gap-3">
               <button class="grid size-12 place-items-center rounded-full bg-white/10 backdrop-blur transition hover:bg-white/20 active:scale-90 disabled:opacity-30" (click)="go(index() - 1)" [disabled]="index() === 0" [attr.aria-label]="zh() ? '上一個' : 'Previous'">
                 <svg appIcon="arrow-left" class="size-5"></svg>
@@ -240,6 +240,7 @@ export class Projects {
         intro.opacity = hint.opacity = String(map(p, [0.02, 0.1], [1, 0]));
         intro.transform = `translateY(${map(p, [0, 0.12], [0, -60])}px)`;
         credit.opacity = String(map(p, [0.3, 0.4], [1, 0]));
+        credit.pointerEvents = p >= 0.4 ? 'none' : 'auto';
         // the two lens images become one full frame, which shrinks into the centre card
         const W = stage.clientWidth, H = stage.clientHeight;
         const cardW = Math.min(W < 768 ? W * 0.8 : W * 0.58, 1000);

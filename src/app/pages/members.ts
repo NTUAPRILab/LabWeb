@@ -164,7 +164,7 @@ export class MembersPage {
   protected readonly Math = Math;
 
   protected photo(id: string, small: boolean) {
-    if (id.startsWith('/')) return id;
+    if (id.includes('/')) return id;
     return small ? wix(id, 300, 375) : wix(id, 480, 600);
   }
 

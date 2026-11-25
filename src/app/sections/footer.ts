@@ -31,7 +31,7 @@ import { I18nService } from '../lib/i18n';
               <a routerLink="/members" class="btn bg-primary text-on-primary hover:bg-[#335a47]">
                 {{ zh() ? '認識成員' : 'Meet the Team' }} <svg appIcon="arrow-up-right" class="size-5"></svg>
               </a>
-              <a [href]="links.publications" target="_blank" rel="noreferrer" class="btn bg-white/60 text-on-primary-container hover:bg-white">
+              <a routerLink="/publications" class="btn bg-white/60 text-on-primary-container hover:bg-white">
                 {{ zh() ? '學術發表' : 'Publications' }}
               </a>
             </div>
@@ -77,7 +77,7 @@ export class Footer {
   protected readonly i18n = inject(I18nService);
   protected readonly zh = computed(() => this.i18n.lang() === 'zh');
   protected readonly links = links;
-  protected readonly photos = galleryPhotos.map((id) => wix(id, 640, 480));
+  protected readonly photos = galleryPhotos.map((id) => (id.includes('/') ? id : wix(id, 640, 480)));
   protected readonly wave = footerWave;
   protected readonly year = new Date().getFullYear();
   protected readonly footerLinks = [

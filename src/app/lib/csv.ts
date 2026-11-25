@@ -74,3 +74,36 @@ export async function fetchNewsFromSheet(url: string): Promise<{ year: string; i
     .sort(([a], [b]) => Number(b) - Number(a))
     .map(([year, items]) => ({ year, items }));
 }
+
+export type PublicationItem = {
+  id: string;
+  year: string;
+  authors: string;
+  details: string;
+  full: string;
+  doi?: string;
+};
+
+export async function fetchPublicationsFromSheet(url: string): Promise<PublicationItem[]> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const rows = parseCsv(await res.text());
+  if (rows.length <= 1) return [];
+
+  const list: PublicationItem[] = [];
+  for (const [rawId, rawYear, rawAuthors, rawDetails, rawFull] of rows.slice(1)) {
+    const details = rawDetails?.trim() || rawFull?.trim();
+    if (!details) continue;
+    const full = rawFull?.trim() || details;
+    const doiMatch = full.match(/https?:\/\/[^\s,]+/);
+    list.push({
+      id: rawId?.trim() || String(list.length + 1),
+      year: rawYear?.trim() || '',
+      authors: rawAuthors?.trim() || '',
+      details,
+      full,
+      doi: doiMatch ? doiMatch[0].replace(/[.,;)]+$/, '') : undefined,
+    });
+  }
+  return list;
+}
